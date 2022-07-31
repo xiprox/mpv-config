@@ -1,10 +1,14 @@
 --
---  trim.lua
---  version 2021.03.01
+--  A script for trimming files right in mpv.
 --
+--  Modified from aerobounce's trim script. This version re-encodes into h264
+--  and mixes the audio down to 2 channels. It also removes some features I
+--  personally didn't use (i.e. macOS notification, precise seeking).
+-- 
 --  AGPLv3 License
---  Created by github.com/aerobounce on 2019/11/18.
 --  Copyright © 2019-present aerobounce. All rights reserved.
+--
+--  Original: https://github.com/aerobounce/trim.lua
 --
 local utils = require "mp.utils"
 local msg = require "mp.msg"
@@ -67,84 +71,6 @@ local function initializeIfNeeded()
         end
         mp.osd_message(message, 3)
     end)
-
-    if isVideoFile then
-        -- Seeking by Keyframe
-        local function seekByKeyframes(amount)
-            mp.commandv("seek", amount, "keyframes", "exact")
-            mp.command("show-progress")
-            updateTrimmingPositionsOSDASS()
-        end
-        mp.add_forced_key_binding("LEFT", "-0.1_keyframes", function()
-            seekByKeyframes(-0.1)
-        end, {repeatable = true})
-        mp.add_forced_key_binding("RIGHT", "0.1_keyframes", function()
-            seekByKeyframes(0.1)
-        end, {repeatable = true})
-        mp.add_forced_key_binding("UP", "10_keyframes", function()
-            seekByKeyframes(10)
-        end, {repeatable = true})
-        mp.add_forced_key_binding("DOWN", "-10_keyframes", function()
-            seekByKeyframes(-10)
-        end, {repeatable = true})
-
-        -- Precise Seeking by Seconds
-        local function seekBySeconds(amount)
-            mp.commandv("seek", amount, "relative", "exact")
-            mp.command("show-progress")
-            updateTrimmingPositionsOSDASS()
-        end
-        mp.add_forced_key_binding("shift+LEFT", "-0.1_seconds", function()
-            seekBySeconds(-0.1)
-        end, {repeatable = true})
-        mp.add_forced_key_binding("shift+RIGHT", "0.1_seconds", function()
-            seekBySeconds(0.1)
-        end, {repeatable = true})
-        mp.add_forced_key_binding("shift+UP", "0.5_seconds", function()
-            seekBySeconds(0.5)
-        end, {repeatable = true})
-        mp.add_forced_key_binding("shift+DOWN", "-0.5_seconds", function()
-            seekBySeconds(-0.5)
-        end, {repeatable = true})
-
-        -- Seek to Default Trim Positions
-        if isVideoFile then
-            seekByKeyframes(-0.1)
-            seekByKeyframes(0.1)
-        end
-    else
-        -- Seeking by Seconds
-        local function seekBySeconds(amount)
-            mp.commandv("seek", amount, "relative")
-            mp.command("show-progress")
-            updateTrimmingPositionsOSDASS()
-        end
-        mp.add_forced_key_binding("LEFT", "-1_seconds", function()
-            seekBySeconds(-1)
-        end, {repeatable = true})
-        mp.add_forced_key_binding("RIGHT", "1_seconds", function()
-            seekBySeconds(1)
-        end, {repeatable = true})
-        mp.add_forced_key_binding("UP", "5_seconds", function()
-            seekBySeconds(5)
-        end, {repeatable = true})
-        mp.add_forced_key_binding("DOWN", "-5_seconds", function()
-            seekBySeconds(-5)
-        end, {repeatable = true})
-
-        mp.add_forced_key_binding("shift+LEFT", "-10_seconds", function()
-            seekBySeconds(-10)
-        end, {repeatable = true})
-        mp.add_forced_key_binding("shift+RIGHT", "10_seconds", function()
-            seekBySeconds(10)
-        end, {repeatable = true})
-        mp.add_forced_key_binding("shift+UP", "30_seconds", function()
-            seekBySeconds(30)
-        end, {repeatable = true})
-        mp.add_forced_key_binding("shift+DOWN", "-30_seconds", function()
-            seekBySeconds(-30)
-        end, {repeatable = true})
-    end
 
     -- Seek to Trimming Positions
     mp.add_forced_key_binding("shift+h", "seek-to-start-position", function()
@@ -392,7 +318,7 @@ function writeOut()
         "-hide_banner",
         "-loglevel", "verbose",
 	
-	  "-y",
+        "-y",
 
         "-ss", tostring(startPosition),
         "-i", tostring(sourcePath),
@@ -441,19 +367,6 @@ function writeOut()
             message = message .. "Done!"
             msg.log("info", message)
             mp.osd_message(message, 2)
-
-            -- Post notification on macOS
-            mp.command_native_async({
-                name = "subprocess",
-                args = {
-                    "sh", "-c",
-[[osascript << EOL 2> /dev/null
-display notification "Success ✅" with title "mpv: trim" sound name "Glass"
-EOL]]
-                },
-                capture_stdout = false
-            }, function(res, val, err)
-            end)
         end
 
         -- Revert player changes
