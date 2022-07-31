@@ -436,7 +436,6 @@ function writeOut()
             message = message .. "Failed. Refer console for details."
             msg.log("error", message)
             mp.osd_message(message, 10)
-
         else
             msg.log("info", "Success!: '" .. destinationPath .. "'")
             message = message .. "Done!"
@@ -456,6 +455,12 @@ EOL]]
             }, function(res, val, err)
             end)
         end
+
+        -- Revert player changes
+        mp.add_timeout(2, function()
+            mp.commandv("script-message", "osc-visibility", "auto")
+            mp.set_property("options/keep-open", "no")
+        end)
     end)
 end
 
