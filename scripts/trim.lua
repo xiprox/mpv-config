@@ -398,9 +398,13 @@ function writeOut()
         "-i", tostring(sourcePath),
         "-t", tostring(trimDuration),
 
-	  "-vcodec", "libx264",
-	  "-crf", "27",
-	  "-preset", "veryfast",
+        "-codec:v", "libx264",
+        "-crf", "24",
+        "-preset", "veryfast",
+
+        "-ac", "2",
+        "-codec:a", "libopus",
+        "-b:a", "320k",
 
         "-strict", "-2",
 
